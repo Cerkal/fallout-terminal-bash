@@ -1,0 +1,14 @@
+<header xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <center-underline>Fallout Terminal Emulator</center-underline>
+    <center>{{hostname}}</center>
+    <center>COPYRIGHT 2075-2077 ROBCO INDUSTRIES</center>
+    <center>-Server 1-</center>
+    <blank></blank>
+    <blank></blank>
+    <underline>{{name}}, Application Developer</underline>
+    <left>username: {{username}}</left>
+    <left>homedir: {{homedir}}</left>
+    <left>shell: {{shell}}</left>
+    <left>uid: {{uid}}</left>
+    <blank></blank>
+</header>

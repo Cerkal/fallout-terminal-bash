@@ -1,0 +1,142 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"        
+TERM_WIDTH=$(tput cols)
+LINES=()
+
+echo; echo;
+
+read_dom () {
+    local IFS=\>
+    read -d \< ENTITY CONTENT
+    local ret=$?
+    TAG_NAME=${ENTITY%% *}
+    ATTRIBUTES=${ENTITY#* }
+    return $ret
+}
+
+create_center_space() {
+	LINE_WIDTH="${#LINE}"
+	SPACE="$(($TERM_WIDTH - $LINE_WIDTH))"
+	SPACE="$(($SPACE/2-1))"
+	SPACES=""
+	for ((i = 0 ; i <= $SPACE ; i++)); do
+		SPACES="${SPACES} "
+	done
+}
+
+create_left_space() {
+	LINE_WIDTH="${#LINE}"
+	SPACE="$(($TERM_WIDTH - $LINE_WIDTH - 1))"
+	SPACES=""
+	for ((i = 0 ; i <= $SPACE ; i++)); do
+		SPACES="${SPACES} "
+	done
+}
+
+center() {
+	create_center_space
+	LINES+=("${SPACES} ${LINE}")
+}
+
+left() {
+	LINES+=("${LINE}")
+}
+
+underline() {
+	create_left_space
+	UNDERLINE=""
+	for ((i = 0 ; i < $LINE_WIDTH ; i++)); do
+		UNDERLINE="${UNDERLINE}-"
+	done
+	LINES+=("${LINE}${SPACES}")
+	LINES+=("${UNDERLINE}${SPACES}")
+}
+
+center_underline() {
+	create_center_space
+	UNDERLINE=""
+	for ((i = 0 ; i < $LINE_WIDTH ; i++)); do
+		UNDERLINE="${UNDERLINE}-"
+	done
+	LINES+=("${SPACES}${LINE}${SPACES}")
+	LINES+=("${SPACES}${UNDERLINE}${SPACES}")
+}
+
+replace_string() {
+	create_name
+	LINE=${CONTENT}
+	LINE="${LINE//\{\{homedir\}\}/$HOME}"
+	LINE="${LINE//\{\{hostname\}\}/$HOSTNAME}"
+	LINE="${LINE//\{\{username\}\}/$USER}"
+	LINE="${LINE//\{\{shell\}\}/$SHELL}"
+	LINE="${LINE//\{\{uid\}\}/$UID}"
+	LINE="${LINE//\{\{name\}\}/$NAME}"
+}
+
+create_name() {
+	IFS='.' read -r -a name_array <<< "$USER"
+	FIRSTNAME="$(tr '[:lower:]' '[:upper:]' <<< ${name_array[0]:0:1})${name_array[0]:1}"
+	LASTNAME="$(tr '[:lower:]' '[:upper:]' <<< ${name_array[1]:0:1})${name_array[1]:1}"
+	NAME="${FIRSTNAME} ${LASTNAME}"
+}
+
+blank() {
+	LINES+=(" ")
+}
+
+while read_dom; do
+	[[ $ATTRIBUTES =~ /.* ]] && continue
+	replace_string
+	case $ATTRIBUTES in
+	center)
+		center
+	;;
+	underline)
+		underline
+	;;
+	left)
+		left
+	;;
+	center_underline)
+		center_underline
+	;;
+	*)
+		blank
+	;;
+	esac
+done < $SCRIPT_DIR/header.xml
+
+
+if [ -t 0 ]; then
+	SAVED_STTY="`stty -g`"
+	stty -echo -icanon -icrnl time 0 min 0
+fi
+
+i=0
+keypress=''
+while [ $i -le ${#LINES[@]} -a "x$keypress" = "x" ]; do
+	let i+=1
+	keypress="`cat -v`"
+	message="${LINES[$i]}"
+	for ((j=0; j<${#message}; j++)) ; do 
+		if [ "${message:$j:1}" = " " ]; then
+			printf "${message:$j:1}"
+		else
+			echo "after 1" | tclsh;
+		    printf "${message:$j:1}";
+		fi
+	done;
+	echo ""
+done
+
+if [ $i -le ${#LINES[@]} ]; then
+	message="${LINES[$i]}"
+	for ((i=$i+1; i<${#LINES[@]}; i++)) ; do 
+		echo "${LINES[$i]}"
+	done;
+fi;
+
+if [ -t 0 ]; then stty "$SAVED_STTY"; fi
+
+exit
